@@ -120,3 +120,24 @@ blogRouter.get("/:id", async (c) => {
     await prisma.$disconnect();
   }
 });
+
+blogRouter.delete("/:id", async (c) => {
+  const userId = c.get("userId");
+  const id = c.req.param("id");
+  const prisma = getPrismaClient(c.env?.DATABASE_URL);
+
+  try {
+    await prisma.post.deleteMany({
+      where: {
+        id: id,
+        authorId: userId,
+      },
+    });
+    return c.text("deleted post", StatusCodes.OK);
+  } catch (error) {
+    c.status(StatusCodes.INTERNAL_SERVER_ERROR);
+    return c.json({ error: "Failed to delete post" });
+  } finally {
+    await prisma.$disconnect();
+  }
+});
