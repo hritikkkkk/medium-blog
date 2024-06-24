@@ -141,3 +141,35 @@ blogRouter.delete("/:id", async (c) => {
     await prisma.$disconnect();
   }
 });
+
+blogRouter.get("/", async (c) => {
+  const prisma = getPrismaClient(c.env?.DATABASE_URL);
+  const page = parseInt(c.req.query("page") || "1", 10);
+  const pageSize = parseInt(c.req.query("pageSize") || "10", 10);
+
+  try {
+    const [posts, totalCount] = await Promise.all([
+      prisma.post.findMany({
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      prisma.post.count(),
+    ]);
+
+    const totalPages = Math.ceil(totalCount / pageSize);
+
+    return c.json({
+      posts,
+      page,
+      pageSize,
+      totalCount,
+      totalPages,
+    }, StatusCodes.OK);
+  } catch (error) {
+    c.status(StatusCodes.INTERNAL_SERVER_ERROR);
+    return c.json({ error: "Failed to retrieve posts" });
+  } finally {
+    await prisma.$disconnect();
+  }
+});
+
