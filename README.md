@@ -1,3 +1,5 @@
+### README.md
+
 ```markdown
 # Hono API with Prisma on Cloudflare Workers
 
@@ -12,7 +14,7 @@ This project is a RESTful API built using [Hono](https://github.com/honojs/hono)
   - [Environment Variables](#environment-variables)
   - [API Endpoints](#api-endpoints)
     - [User Signup](#user-signup)
-    - [User Signin](#user-signup)
+    - [User Signin](#user-signin)
     - [Create a Blog](#create-a-blog)
     - [Update a Blog](#update-a-blog)
     - [Get a Blog by ID](#get-a-blog-by-id)
@@ -31,7 +33,7 @@ This project is a RESTful API built using [Hono](https://github.com/honojs/hono)
 
 ```bash
 git clone https://github.com/hritikkkkk/medium-blog.git
-cd your-repo
+cd medium-blog
 ```
 
 2. Install dependencies:
@@ -60,8 +62,6 @@ compatibility_date = "2023-06-23"
 [vars]
 DATABASE_URL = "your-pooled-database-url"
 JWT_SECRET = "your-jwt-secret"
-
-
 ```
 
 2. Deploy to Cloudflare Workers:
@@ -73,9 +73,9 @@ npm run deploy
 ## Environment Variables
 
 - `DATABASE_URL`: URL of your database.
+- `JWT_SECRET`: Secret key for JWT authentication.
 
 ## API Endpoints
-
 
 ### User Signup
 
@@ -85,7 +85,7 @@ npm run deploy
 ```json
 {
   "email": "email@gmail.com",
-  "password": "email"
+  "password": "password"
 }
 ```
 
@@ -93,19 +93,14 @@ npm run deploy
 
 **URL**: `PUT /api/v1/user/signin`
 
-**Headers**:
-```
-Authorization: Bearer YOUR_JWT_TOKEN
-Content-Type: application/json
-```
-
 **Body**:
 ```json
 {
   "email": "email@gmail.com",
-  "password": "email"
+  "password": "password"
 }
 ```
+
 ### Create a Blog
 
 **URL**: `POST /api/v1/blog`
@@ -174,6 +169,5 @@ Authorization: Bearer YOUR_JWT_TOKEN
 - `page`: The page number to retrieve (e.g., `1`).
 - `pageSize`: The number of posts per page (e.g., `10`).
 
-deployed application with query parameters: `https://backend.hritik-7827.workers.dev/api/v1/blog?page=1&pageSize=10`
-
+Example URL with query parameters: `https://backend.hritik-7827.workers.dev/api/v1/blog?page=1&pageSize=10`
 
