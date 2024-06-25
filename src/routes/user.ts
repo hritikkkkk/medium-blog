@@ -4,6 +4,7 @@ import { Hono } from "hono";
 import { sign } from "hono/jwt";
 import bcrypt from "bcryptjs";
 import { StatusCodes } from "http-status-codes";
+import { signinInput, signupInput } from "@npm_devs/medium-common";
 
 export const userRouter = new Hono<{
   Bindings: {
@@ -13,11 +14,18 @@ export const userRouter = new Hono<{
 }>();
 
 userRouter.post("/signup", async (c) => {
+  const body = await c.req.json();
+  const { success } = signupInput.safeParse(body);
+  if (!success) {
+    c.status(StatusCodes.UNPROCESSABLE_ENTITY);
+    return c.json({
+      message: "Inputs not correct",
+    });
+  }
+
   const prisma = new PrismaClient({
     datasourceUrl: c.env.DATABASE_URL,
   }).$extends(withAccelerate());
-
-  const body = await c.req.json();
 
   const existingUser = await prisma.user.findUnique({
     where: {
@@ -55,11 +63,19 @@ userRouter.post("/signup", async (c) => {
 });
 
 userRouter.post("/signin", async (c) => {
+  const body = await c.req.json();
+
+  const { success } = signinInput.safeParse(body);
+  if (!success) {
+    c.status(StatusCodes.UNPROCESSABLE_ENTITY);
+    return c.json({
+      message: "Inputs not correct",
+    });
+  }
   const prisma = new PrismaClient({
     datasourceUrl: c.env.DATABASE_URL,
   }).$extends(withAccelerate());
 
-  const body = await c.req.json();
   const user = await prisma.user.findUnique({
     where: {
       email: body.email,

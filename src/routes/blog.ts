@@ -3,6 +3,7 @@ import { withAccelerate } from "@prisma/extension-accelerate";
 import { Hono } from "hono";
 import { verify } from "hono/jwt";
 import { StatusCodes } from "http-status-codes";
+import { createBlogInput, updateBlogInput } from "@npm_devs/medium-common";
 
 export const blogRouter = new Hono<{
   Bindings: {
@@ -47,6 +48,15 @@ const getPrismaClient = (databaseUrl: string) => {
 };
 
 blogRouter.post("/", async (c) => {
+  const body = await c.req.json();
+  const { success } = createBlogInput.safeParse(body);
+  if (!success) {
+    c.status(StatusCodes.UNPROCESSABLE_ENTITY);
+    return c.json({
+      message: "Inputs not correct",
+    });
+  }
+
   const userId = c.get("userId");
   const prisma = getPrismaClient(c.env?.DATABASE_URL);
 
@@ -74,6 +84,15 @@ blogRouter.post("/", async (c) => {
 });
 
 blogRouter.put("/", async (c) => {
+  const body = await c.req.json();
+  const { success } = updateBlogInput.safeParse(body);
+  if (!success) {
+    c.status(StatusCodes.UNPROCESSABLE_ENTITY);
+    return c.json({
+      message: "Inputs not correct",
+    });
+  }
+
   const userId = c.get("userId");
   const prisma = getPrismaClient(c.env?.DATABASE_URL);
 
@@ -158,13 +177,16 @@ blogRouter.get("/", async (c) => {
 
     const totalPages = Math.ceil(totalCount / pageSize);
 
-    return c.json({
-      posts,
-      page,
-      pageSize,
-      totalCount,
-      totalPages,
-    }, StatusCodes.OK);
+    return c.json(
+      {
+        posts,
+        page,
+        pageSize,
+        totalCount,
+        totalPages,
+      },
+      StatusCodes.OK
+    );
   } catch (error) {
     c.status(StatusCodes.INTERNAL_SERVER_ERROR);
     return c.json({ error: "Failed to retrieve posts" });
@@ -172,4 +194,3 @@ blogRouter.get("/", async (c) => {
     await prisma.$disconnect();
   }
 });
-
