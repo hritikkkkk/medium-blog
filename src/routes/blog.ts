@@ -21,15 +21,15 @@ blogRouter.use(async (c, next) => {
     c.status(StatusCodes.UNAUTHORIZED);
     return c.json({ error: "unauthorized" });
   }
-  const token = jwt.split(" ")[1];
+
   try {
+    const token = jwt.split(" ")[1];
     const payload = await verify(token, c.env.JWT_SECRET);
     if (!payload) {
       c.status(StatusCodes.UNAUTHORIZED);
       return c.json({ error: "unauthorized" });
     }
-    //@ts-ignore
-    c.set("userId", payload.id);
+    c.set("userId", payload.id as string);
     await next();
   } catch (error) {
     c.status(StatusCodes.UNAUTHORIZED);
@@ -49,32 +49,24 @@ const getPrismaClient = (databaseUrl: string) => {
 
 blogRouter.post("/", async (c) => {
   const body = await c.req.json();
-  const { success } = createBlogInput.safeParse(body);
-  if (!success) {
+  const parsed = createBlogInput.safeParse(body);
+  if (!parsed.success) {
     c.status(StatusCodes.UNPROCESSABLE_ENTITY);
-    return c.json({
-      message: "Inputs not correct",
-    });
+    return c.json({ message: "Inputs not correct" });
   }
 
   const userId = c.get("userId");
   const prisma = getPrismaClient(c.env?.DATABASE_URL);
 
   try {
-    const body = await c.req.json();
     const post = await prisma.post.create({
       data: {
-        title: body.title,
-        content: body.content,
+        title: parsed.data.title,
+        content: parsed.data.content,
         authorId: userId,
       },
     });
-    return c.json(
-      {
-        id: post.id,
-      },
-      StatusCodes.CREATED
-    );
+    return c.json({ id: post.id }, StatusCodes.CREATED);
   } catch (error) {
     c.status(StatusCodes.INTERNAL_SERVER_ERROR);
     return c.json({ error: "Failed to create post" });
@@ -83,24 +75,24 @@ blogRouter.post("/", async (c) => {
   }
 });
 
-blogRouter.put("/", async (c) => {
-  const body = await c.req.json();
-  const { success } = updateBlogInput.safeParse(body);
-  if (!success) {
-    c.status(StatusCodes.UNPROCESSABLE_ENTITY);
-    return c.json({
-      message: "Inputs not correct",
-    });
-  }
-
+blogRouter.put("/:id", async (c) => {
   const userId = c.get("userId");
   const prisma = getPrismaClient(c.env?.DATABASE_URL);
 
+  const postId = c.req.param("id");
+  const body = await c.req.json();
+  body.id = postId;
+
+  const { success } = updateBlogInput.safeParse(body);
+  if (!success) {
+    c.status(StatusCodes.UNPROCESSABLE_ENTITY);
+    return c.json({ message: "Inputs not correct" });
+  }
+
   try {
-    const body = await c.req.json();
-    await prisma.post.update({
+    const updatedPost = await prisma.post.update({
       where: {
-        id: body.id,
+        id: postId,
         authorId: userId,
       },
       data: {
@@ -108,8 +100,17 @@ blogRouter.put("/", async (c) => {
         content: body.content,
       },
     });
-    return c.text("updated post", StatusCodes.OK);
-  } catch (error) {
+
+    return c.json(
+      { message: "Post updated successfully", post: updatedPost },
+      StatusCodes.OK
+    );
+  } catch (error: any) {
+    if (error.code === "P2025") {
+      // Prisma error for record not found
+      c.status(StatusCodes.NOT_FOUND);
+      return c.json({ error: "Post not found or you're not the author." });
+    }
     c.status(StatusCodes.INTERNAL_SERVER_ERROR);
     return c.json({ error: "Failed to update post" });
   } finally {
@@ -122,11 +123,7 @@ blogRouter.get("/:id", async (c) => {
   const prisma = getPrismaClient(c.env?.DATABASE_URL);
 
   try {
-    const post = await prisma.post.findUnique({
-      where: {
-        id,
-      },
-    });
+    const post = await prisma.post.findUnique({ where: { id } });
     if (!post) {
       c.status(StatusCodes.NOT_FOUND);
       return c.json({ error: "Post not found" });
@@ -141,21 +138,31 @@ blogRouter.get("/:id", async (c) => {
 });
 
 blogRouter.delete("/:id", async (c) => {
-  const userId = c.get("userId");
-  const id = c.req.param("id");
   const prisma = getPrismaClient(c.env?.DATABASE_URL);
+  const userId = c.get("userId");
+  const postId = c.req.param("id");
 
   try {
-    await prisma.post.deleteMany({
-      where: {
-        id: id,
-        authorId: userId,
-      },
+    const existingPost = await prisma.post.findUnique({
+      where: { id: postId },
     });
-    return c.text("deleted post", StatusCodes.OK);
+    if (!existingPost) {
+      c.status(StatusCodes.NOT_FOUND);
+      return c.json({ error: "Post not found." });
+    }
+
+    if (existingPost.authorId !== userId) {
+      c.status(StatusCodes.FORBIDDEN);
+      return c.json({
+        error: "You do not have permission to delete this post.",
+      });
+    }
+
+    await prisma.post.delete({ where: { id: postId } });
+    return c.json({ message: "Post deleted successfully." });
   } catch (error) {
     c.status(StatusCodes.INTERNAL_SERVER_ERROR);
-    return c.json({ error: "Failed to delete post" });
+    return c.json({ error: "Failed to delete post." });
   } finally {
     await prisma.$disconnect();
   }
