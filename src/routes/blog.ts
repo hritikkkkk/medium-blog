@@ -201,3 +201,25 @@ blogRouter.get("/", async (c) => {
     await prisma.$disconnect();
   }
 });
+
+blogRouter.get("/user/posts", async (c) => {
+  const userId = c.get("userId");
+  const prisma = getPrismaClient(c.env?.DATABASE_URL);
+  try {
+    const userPosts = await prisma.post.findMany({
+      where: {
+        authorId: userId,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return c.json(userPosts);
+  } catch (error) {
+    c.status(StatusCodes.INTERNAL_SERVER_ERROR);
+    return c.json({ error: "Failed to retrieve posts" });
+  } finally {
+    await prisma.$disconnect();
+  }
+});
