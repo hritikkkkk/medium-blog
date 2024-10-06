@@ -66,7 +66,7 @@ blogRouter.post("/", async (c) => {
         authorId: userId,
       },
     });
-    return c.json({ id: post.id }, StatusCodes.CREATED);
+    return c.json({ post }, StatusCodes.CREATED);
   } catch (error) {
     c.status(StatusCodes.INTERNAL_SERVER_ERROR);
     return c.json({ error: "Failed to create post" });
