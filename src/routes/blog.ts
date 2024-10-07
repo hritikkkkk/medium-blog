@@ -178,6 +178,16 @@ blogRouter.get("/", async (c) => {
       prisma.post.findMany({
         skip: (page - 1) * pageSize,
         take: pageSize,
+        orderBy: {
+          createdAt: "desc",
+        },
+        include: {
+          author: {
+            select: {
+              name: true, 
+            },
+          },
+        },
       }),
       prisma.post.count(),
     ]);
@@ -201,6 +211,7 @@ blogRouter.get("/", async (c) => {
     await prisma.$disconnect();
   }
 });
+
 
 blogRouter.get("/user/posts", async (c) => {
   const userId = c.get("userId");
