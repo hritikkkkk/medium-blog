@@ -50,9 +50,7 @@ userRouter.post("/signup", async (c) => {
 
     const token = await sign({ id: newUser.id }, c.env.JWT_SECRET);
 
-    return c.json({
-      jwt: token,
-    });
+    return c.text(token);
   } catch (error) {
     console.error("Error creating user:", error);
     c.status(StatusCodes.INTERNAL_SERVER_ERROR);

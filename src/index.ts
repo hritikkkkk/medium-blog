@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { userRouter } from "./routes/user";
 import { blogRouter } from "./routes/blog";
+import quoteRoute from "./routes/quote";
 
 export const app = new Hono<{
   Bindings: {
@@ -12,5 +13,6 @@ export const app = new Hono<{
 app.use("/*", cors());
 app.route("/api/v1/user", userRouter);
 app.route("/api/v1/blog", blogRouter);
+app.route("/api/v1", quoteRoute);
 
 export default app;
