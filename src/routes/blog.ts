@@ -123,7 +123,16 @@ blogRouter.get("/:id", async (c) => {
   const prisma = getPrismaClient(c.env?.DATABASE_URL);
 
   try {
-    const post = await prisma.post.findUnique({ where: { id } });
+    const post = await prisma.post.findUnique({
+      where: { id },
+      include: {
+        author: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    });
     if (!post) {
       c.status(StatusCodes.NOT_FOUND);
       return c.json({ error: "Post not found" });
@@ -184,7 +193,7 @@ blogRouter.get("/", async (c) => {
         include: {
           author: {
             select: {
-              name: true, 
+              name: true,
             },
           },
         },
@@ -211,7 +220,6 @@ blogRouter.get("/", async (c) => {
     await prisma.$disconnect();
   }
 });
-
 
 blogRouter.get("/user/posts", async (c) => {
   const userId = c.get("userId");
